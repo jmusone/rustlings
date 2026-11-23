@@ -3,14 +3,15 @@
 // shared value: `JobStatus.jobs_done`
 
 use std::{sync::Arc, thread, time::Duration};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 struct JobStatus {
-    jobs_done: u32,
+    jobs_done: AtomicU32,
 }
 
 fn main() {
     // TODO: `Arc` isn't enough if you want a **mutable** shared state.
-    let status = Arc::new(JobStatus { jobs_done: 0 });
+    let status = Arc::new(JobStatus { jobs_done: 0.into() });
 
     let mut handles = Vec::new();
     for _ in 0..10 {
@@ -19,7 +20,7 @@ fn main() {
             thread::sleep(Duration::from_millis(250));
 
             // TODO: You must take an action before you update a shared value.
-            status_shared.jobs_done += 1;
+            status_shared.jobs_done.fetch_add(1, Ordering::Relaxed)
         });
         handles.push(handle);
     }
@@ -30,5 +31,5 @@ fn main() {
     }
 
     // TODO: Print the value of `JobStatus.jobs_done`.
-    println!("Jobs done: {}", todo!());
+    println!("Jobs done: {}", status.jobs_done.load(Ordering::Relaxed));
 }
